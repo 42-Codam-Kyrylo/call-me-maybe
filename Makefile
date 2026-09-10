@@ -1,6 +1,7 @@
-# export CACHE_DIR ?= /home/kvolynsk/sgoinfre/cache
-# export HF_HOME ?= $(CACHE_DIR)/huggingface
-# export UV_CACHE_DIR ?= $(CACHE_DIR)/uv-cache
+
+export CACHE_DIR ?= /home/kvolynsk/sgoinfre/call-me-maybe/llm-cache
+export HF_HOME ?= $(CACHE_DIR)/huggingface
+export UV_CACHE_DIR ?= $(CACHE_DIR)/uv-cache
 
 PYTHON ?= python3
 UV ?= uv
