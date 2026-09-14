@@ -64,3 +64,20 @@ def parse_function_definitions(filepath: str) -> List[FunctionDefinition]:
 def parse_function_calling_tests(filepath: str) -> List[FunctionCallingTest]:
     """Loads and validates function calling tests from a JSON file."""
     return _parse_json_list_file(filepath, FunctionCallingTest)
+
+
+def parse_vocabulary(filepath: str) -> Dict[str, int]:
+    """Loads a vocabulary dictionary from a JSON file."""
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Vocabulary file not found: {filepath}")
+    
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON format in {filepath}: {e}")
+        
+    if not isinstance(data, dict):
+        raise ValueError(f"Expected a dictionary in {filepath}, got {type(data).__name__}")
+        
+    return data
