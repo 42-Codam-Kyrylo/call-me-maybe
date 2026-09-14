@@ -31,22 +31,36 @@ def main():
     args = parser.parse_args()
     print("input:", args.input)
 
-    model = Small_LLM_Model()
-    prompt = "The capital of France is"
+    from parsing.parsing import parse_function_definitions, parse_function_calling_tests
+    
+    try:
+        functions = parse_function_definitions(args.functions_definition)
+        print(f"Successfully loaded {len(functions)} function definitions.")
+    except Exception as e:
+        print(f"Error loading function definitions: {e}")
 
-    tokens: list[int] = model.encode(prompt).tolist()[0]
-    max_new_tokens = 10
+    try:
+        tests = parse_function_calling_tests(args.input)
+        print(f"Successfully loaded {len(tests)} function calling tests.")
+    except Exception as e:
+        print(f"Error loading function calling tests: {e}")
 
-    for _ in range(max_new_tokens):
-        logits = model.get_logits_from_input_ids(tokens)
-        next_token = int(np.argmax(logits))
+    # model = Small_LLM_Model()
+    # prompt = "The capital of France is"
 
-        tokens.append(next_token)
-        print(model.decode([next_token]), end="", flush=True)
+    # tokens: list[int] = model.encode(prompt).tolist()[0]
+    # max_new_tokens = 10
 
-    full_text = model.decode(tokens)
-    print()
-    print(full_text)
+    # for _ in range(max_new_tokens):
+    #     logits = model.get_logits_from_input_ids(tokens)
+    #     next_token = int(np.argmax(logits))
+
+    #     tokens.append(next_token)
+    #     print(model.decode([next_token]), end="", flush=True)
+
+    # full_text = model.decode(tokens)
+    # print()
+    # print(full_text)
 
 
 if __name__ == "__main__":
