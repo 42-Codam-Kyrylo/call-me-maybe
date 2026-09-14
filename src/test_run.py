@@ -1,40 +1,3 @@
-import numpy as np
-from llm_sdk import Small_LLM_Model
-
-
-def main():
-    print("Загрузка модели...")
-    model = Small_LLM_Model()
-
-    prompt = "The capital of France is"
-    print(f"Промпт: {prompt}\n")
-
-    # 1. Получаем базовый список токенов [int, int, ...]
-    tokens = model.encode(prompt).tolist()[0]
-
-    max_new_tokens = 10
-    print("Генерируем ответ:", end=" ", flush=True)
-
-    for _ in range(max_new_tokens):
-        # 2. Получаем логиты. Метод принимает list[int] и возвращает list[float]
-        logits = model.get_logits_from_input_ids(tokens)
-
-        # 3. Используем разрешенный numpy для поиска индекса максимального числа
-        next_token = int(np.argmax(logits))
-
-        # 4. Добавляем токен
-        tokens.append(next_token)
-
-        # Печатаем шаг за шагом (decode тоже принимает список)
-        print(model.decode([next_token]), end="", flush=True)
-
-    print("\n\nГотово! Полный текст:")
-    full_text = model.decode(tokens)
-    print(full_text)
-
-
-if __name__ == "__main__":
-    main()
 
 # from llm_sdk import Small_LLM_Model
 
@@ -75,6 +38,44 @@ if __name__ == "__main__":
 #     # 5. В конце декодируем всю последовательность целиком
 #     full_text = model.decode(tokens)
 #     print(full_text)
+
+# if __name__ == "__main__":
+#     main()
+
+# import numpy as np
+# from llm_sdk import Small_LLM_Model
+
+
+# def main():
+#     print("Загрузка модели...")
+#     model = Small_LLM_Model()
+
+#     prompt = "The capital of France is"
+#     print(f"Промпт: {prompt}\n")
+
+#     # 1. Получаем базовый список токенов [int, int, ...]
+#     tokens = model.encode(prompt).tolist()[0]
+
+#     max_new_tokens = 10
+#     print("Генерируем ответ:", end=" ", flush=True)
+
+#     for _ in range(max_new_tokens):
+#         # 2. Получаем логиты. Метод принимает list[int] и возвращает list[float]
+#         logits = model.get_logits_from_input_ids(tokens)
+
+#         # 3. Используем разрешенный numpy для поиска индекса максимального числа
+#         next_token = int(np.argmax(logits))
+
+#         # 4. Добавляем токен
+#         tokens.append(next_token)
+
+#         # Печатаем шаг за шагом (decode тоже принимает список)
+#         print(model.decode([next_token]), end="", flush=True)
+
+#     print("\n\nГотово! Полный текст:")
+#     full_text = model.decode(tokens)
+#     print(full_text)
+
 
 # if __name__ == "__main__":
 #     main()
