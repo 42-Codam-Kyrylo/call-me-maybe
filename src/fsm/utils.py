@@ -16,7 +16,7 @@ class Cache:
         self.vocabulary = vocabulary
         self.fd = fd
         self.valid_numbers_ids: list[int] = []
-        self.valid_fd_ids: list[int] = []
+        self.tokenized_fds: list[list[int]] = []
 
         self.find_valid_numbers_ids()
         self.find_valid_fd_ids()
@@ -29,4 +29,4 @@ class Cache:
     def find_valid_fd_ids(self) -> None:
         for f in self.fd:
             fd_tokens: list[int] = self.model.encode(f).tolist()[0]
-            self.valid_fd_ids.extend(fd_tokens)
+            self.tokenized_fds.append(fd_tokens)

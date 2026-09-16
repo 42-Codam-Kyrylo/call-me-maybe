@@ -1,6 +1,6 @@
 import argparse
 import sys
-from src.utils import generate_prompt
+from src.fsm import FunctionCallingFSM
 from enum import StrEnum
 from llm_sdk import Small_LLM_Model
 from src.parsing import (
@@ -67,8 +67,11 @@ def main():
         print(f"Error loading vocabulary: {e}")
         exit()
 
-    # prompt = generate_prompt(fd, tests[0].prompt)
-    # print(prompt)
+    fsm = FunctionCallingFSM(model, vocabulary, fd)
+    result = fsm.run_tests(tests)
+
+    for r in result:
+        print(r)
 
 
 if __name__ == "__main__":
