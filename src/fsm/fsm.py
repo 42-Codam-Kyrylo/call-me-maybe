@@ -61,37 +61,63 @@ class FunctionCallingFSM:
         ).tolist()[0]
         result_tokens: list[int] = []
 
-        while True:
-            allowed_token_ids = []
-            matched_functions = 0
-            last_matched_fd = None
+        max_tokens = 20
 
-            for fd_tokens in self.cache.tokenized_fds:
-                if fd_tokens[:len(result_tokens)] == result_tokens:
-                    matched_functions += 1
-                    last_matched_fd = fd_tokens
-
-                    if len(fd_tokens) > len(result_tokens):
-                        next_token = fd_tokens[len(result_tokens)]
-                        allowed_token_ids.append(next_token)
-
-            allowed_token_ids = list(set(allowed_token_ids))
-
-            if matched_functions == 1:
-                return self.model.decode(last_matched_fd)
-
-            if matched_functions == 0:
-                break
-
+        for _ in range(max_tokens):
             logits = self.model.get_logits_from_input_ids(prompt_tokens)
             last_logits = np.array(logits)
 
-            masked_logits = np.full_like(last_logits, -np.inf)
-            masked_logits[allowed_token_ids] = last_logits[allowed_token_ids]
+            next_token = int(np.argmax(last_logits))
 
-            next_token = int(np.argmax(masked_logits))
+            token_str = self.model.decode([next_token])
 
-            prompt_tokens.append(next_token)
+            if '"' in token_str or "\n" in token_str:
+                break
+
             result_tokens.append(next_token)
+            prompt_tokens.append(next_token)
 
-        return self.model.decode(result_tokens)
+        return self.model.decode(result_tokens).strip()
+
+    # def _get_function_name(self, prompt: str) -> str:
+    #     prompt_with_injection = prompt + '{"name": "'
+
+    #     prompt_tokens: list[int] = self.model.encode(
+    #         prompt_with_injection
+    #     ).tolist()[0]
+    #     result_tokens: list[int] = []
+
+    #     while True:
+    #         allowed_token_ids = []
+    #         matched_functions = 0
+    #         last_matched_fd = None
+
+    #         for fd_tokens in self.cache.tokenized_fds:
+    #             if fd_tokens[:len(result_tokens)] == result_tokens:
+    #                 matched_functions += 1
+    #                 last_matched_fd = fd_tokens
+
+    #                 if len(fd_tokens) > len(result_tokens):
+    #                     next_token = fd_tokens[len(result_tokens)]
+    #                     allowed_token_ids.append(next_token)
+
+    #         allowed_token_ids = list(set(allowed_token_ids))
+
+    #         if matched_functions == 1:
+    #             return self.model.decode(last_matched_fd)
+
+    #         if matched_functions == 0:
+    #             break
+
+    #         logits = self.model.get_logits_from_input_ids(prompt_tokens)
+    #         last_logits = np.array(logits)
+
+    #         masked_logits = np.full_like(last_logits, -np.inf)
+    #         masked_logits[allowed_token_ids] = last_logits[allowed_token_ids]
+
+    #         next_token = int(np.argmax(masked_logits))
+
+    #         prompt_tokens.append(next_token)
+    #         result_tokens.append(next_token)
+
+    #     return self.model.decode(result_tokens)
