@@ -67,8 +67,8 @@ def main():
         print(f"Error loading vocabulary: {e}")
         exit()
 
-    prompt = generate_prompt(fd, tests[0].prompt)
-    print(prompt)
+    # prompt = generate_prompt(fd, tests[0].prompt)
+    # print(prompt)
 
 
 if __name__ == "__main__":

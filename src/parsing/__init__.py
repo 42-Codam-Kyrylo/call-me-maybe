@@ -3,7 +3,8 @@ from .parsing import (
     parse_function_calling_tests,
     parse_vocabulary,
     FunctionDefinition,
-    Vocabulary
+    FunctionCallingTest,
+    Vocabulary,
 )
 
 __all__ = [
@@ -11,5 +12,6 @@ __all__ = [
     "parse_function_calling_tests",
     "parse_vocabulary",
     FunctionDefinition,
-    Vocabulary
+    FunctionCallingTest,
+    Vocabulary,
 ]
