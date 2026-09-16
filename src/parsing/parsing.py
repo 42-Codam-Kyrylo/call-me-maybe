@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, List, Type, TypeVar
+from typing import Type, TypeVar
 from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
@@ -17,7 +17,7 @@ class ReturnDefinition(BaseModel):
 class FunctionDefinition(BaseModel):
     name: str
     description: str
-    parameters: Dict[str, ParameterDefinition]
+    parameters: dict[str, ParameterDefinition]
     returns: ReturnDefinition
 
 
@@ -25,7 +25,10 @@ class FunctionCallingTest(BaseModel):
     prompt: str
 
 
-def _parse_json_list_file(filepath: str, model_class: Type[T]) -> List[T]:
+Vocabulary = dict[str, int]
+
+
+def _parse_json_list_file(filepath: str, model_class: Type[T]) -> list[T]:
     """
     Generic helper function to load and validate a list of Pydantic models from a JSON file.
     Includes error handling for missing files, invalid JSON, and schema validation.
@@ -56,28 +59,30 @@ def _parse_json_list_file(filepath: str, model_class: Type[T]) -> List[T]:
     return items
 
 
-def parse_function_definitions(filepath: str) -> List[FunctionDefinition]:
+def parse_function_definitions(filepath: str) -> list[FunctionDefinition]:
     """Loads and validates function definitions from a JSON file."""
     return _parse_json_list_file(filepath, FunctionDefinition)
 
 
-def parse_function_calling_tests(filepath: str) -> List[FunctionCallingTest]:
+def parse_function_calling_tests(filepath: str) -> list[FunctionCallingTest]:
     """Loads and validates function calling tests from a JSON file."""
     return _parse_json_list_file(filepath, FunctionCallingTest)
 
 
-def parse_vocabulary(filepath: str) -> Dict[str, int]:
+def parse_vocabulary(filepath: str) -> Vocabulary:
     """Loads a vocabulary dictionary from a JSON file."""
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"Vocabulary file not found: {filepath}")
-    
+
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON format in {filepath}: {e}")
-        
+
     if not isinstance(data, dict):
-        raise ValueError(f"Expected a dictionary in {filepath}, got {type(data).__name__}")
-        
+        raise ValueError(
+            f"Expected a dictionary in {filepath}, got {type(data).__name__}"
+        )
+
     return data

@@ -1,9 +1,7 @@
 import argparse
 import sys
-
-# import numpy as np
+from src.utils import generate_prompt
 from enum import StrEnum
-
 from llm_sdk import Small_LLM_Model
 from src.parsing import (
     parse_function_definitions,
@@ -44,8 +42,8 @@ def main():
     print("input:", args.input)
 
     try:
-        functions = parse_function_definitions(args.functions_definition)
-        print(f"Successfully loaded {len(functions)} function definitions.")
+        fd = parse_function_definitions(args.functions_definition)
+        print(f"Successfully loaded {len(fd)} function definitions.")
     except Exception as e:
         print(f"Error loading function definitions: {e}")
         exit()
@@ -68,6 +66,9 @@ def main():
     except Exception as e:
         print(f"Error loading vocabulary: {e}")
         exit()
+
+    prompt = generate_prompt(fd, tests[0].prompt)
+    print(prompt)
 
 
 if __name__ == "__main__":
