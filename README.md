@@ -68,7 +68,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A[Inject: `{"name": "`] --> B[Request Logits]
+    A["Inject Name Key"] --> B[Request Logits]
     B --> C[Find Matching Tokens]
     C --> D{Is Single Match?}
     
@@ -90,10 +90,10 @@ The goal of this phase is to strictly output one of the predefined function name
 ```mermaid
 stateDiagram-v2
     [*] --> INJECT_PARAMETERS_KEY
-    INJECT_PARAMETERS_KEY --> ITERATE_PARAMS : `", "parameters": {`
+    INJECT_PARAMETERS_KEY --> ITERATE_PARAMS : Append Parameters Key
 
     state ITERATE_PARAMS {
-        [*] --> INJECT_ARG_KEY : `"arg_name": `
+        [*] --> INJECT_ARG_KEY : Append Arg Name
         
         INJECT_ARG_KEY --> PREDICT_TOKEN
         
