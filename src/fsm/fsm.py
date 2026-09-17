@@ -40,14 +40,19 @@ class FunctionCallingFSM:
 
             prompt = generate_prompt(self.functions_definitions, test.prompt)
 
-            match self.status:
-                case STATUS.FUNCTION_NAME:
-                    name = self._get_function_name(prompt)
-                    item["name"] = name
-                case STATUS.FUNCTION_PARAMETERS:
-                    pass
-                case STATUS.WAITING_NUMBER:
-                    pass
+            name = self._get_function_name(prompt)
+            item["name"] = name
+
+            parameters = self._generate_function_parameters(name, prompt)
+            item["parameters"] = parameters
+
+            # match self.status:
+            #     case STATUS.FUNCTION_NAME:
+            #         self.status = STATUS.FUNCTION_PARAMETERS
+            #     case STATUS.FUNCTION_PARAMETERS:
+            #         pass
+            #     case STATUS.WAITING_NUMBER:
+            #         pass
 
             result.append(item)
 
@@ -67,7 +72,7 @@ class FunctionCallingFSM:
             last_matched_fd = None
 
             for fd_tokens in self.cache.tokenized_fds:
-                if fd_tokens[:len(result_tokens)] == result_tokens:
+                if fd_tokens[: len(result_tokens)] == result_tokens:
                     matched_functions += 1
                     last_matched_fd = fd_tokens
 
@@ -95,3 +100,39 @@ class FunctionCallingFSM:
             result_tokens.append(next_token)
 
         return self.model.decode(result_tokens)
+
+    def _generate_function_parameters(self, fn_name: str, prompt: str) -> dict:
+        params, args = self._get_fn_params(fn_name)
+
+        prompt_with_injection = (
+            prompt + f'{{"name": "{fn_name}", "parameters": {{'
+        )
+        prompt_tokens: list[int] = self.model.encode(
+            prompt_with_injection
+        ).tolist()[0]
+
+        for agr in args:
+            arg_tokens: list[int] = self.model.encode(f'"{agr}": ').tolist()[0]
+            prompt_tokens.extend(arg_tokens)
+
+            while True:
+                logits = self.model.get_logits_from_input_ids(prompt_tokens)
+                next_token = int(np.argmax(logits))
+                prompt_tokens.append(next_token)
+
+                value: str = self.model.decode([next_token])
+                if "," in value:
+                    whitespace_token = self.model.encode(" ").tolist()[0]
+                    prompt_tokens.extend(whitespace_token)
+                    break
+                if "}" in value:
+                    break
+
+        prompt_str = self.model.decode(prompt_tokens)
+        _, _, result = prompt_str.partition('"parameters":')
+        return result.strip()
+
+    def _get_fn_params(self, fn_name: str):
+        for fd in self.functions_definitions:
+            if fd.name == fn_name:
+                return fd.parameters, [p for p in fd.parameters]
