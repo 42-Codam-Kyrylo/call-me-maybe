@@ -2,7 +2,7 @@ import argparse
 import sys
 import json
 from pathlib import Path
-from src.fsm import FunctionCallingFSM
+from src.engine import FunctionCallingEngine
 from enum import StrEnum
 from llm_sdk import Small_LLM_Model
 from src.parsing import (
@@ -69,8 +69,8 @@ def main():
         print(f"Error loading vocabulary: {e}")
         exit()
 
-    fsm = FunctionCallingFSM(model, vocabulary, fd)
-    result = fsm.run_tests(tests)
+    engine = FunctionCallingEngine(model, vocabulary, fd)
+    result = engine.run_tests(tests)
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
