@@ -7,14 +7,17 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class ParameterDefinition(BaseModel):
+    """Pydantic model representing a single parameter definition."""
     type: str
 
 
 class ReturnDefinition(BaseModel):
+    """Pydantic model representing a function's return type definition."""
     type: str
 
 
 class FunctionDefinition(BaseModel):
+    """Pydantic model representing a complete function definition."""
     name: str
     description: str
     parameters: dict[str, ParameterDefinition]
@@ -22,6 +25,7 @@ class FunctionDefinition(BaseModel):
 
 
 class FunctionCallingTest(BaseModel):
+    """Pydantic model representing a test prompt for function calling."""
     prompt: str
 
 

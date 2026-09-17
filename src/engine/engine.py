@@ -163,6 +163,14 @@ class FunctionCallingEngine:
         prompt_tokens: list[int],
         is_last_arg: bool,
     ) -> None:
+        """Generates the token sequence for a single parameter.
+
+        Args:
+            arg_name: Name of the parameter.
+            param_type: The expected type of the parameter.
+            prompt_tokens: List of tokens generated so far.
+            is_last_arg: Whether this is the final parameter to generate.
+        """
         self._inject_parameter_key(arg_name, param_type, prompt_tokens)
 
         while True:
@@ -182,6 +190,13 @@ class FunctionCallingEngine:
     def _inject_parameter_key(
         self, arg_name: str, param_type: str, prompt_tokens: list[int]
     ) -> None:
+        """Injects the key name for the parameter into the sequence.
+
+        Args:
+            arg_name: Name of the parameter.
+            param_type: The expected type of the parameter.
+            prompt_tokens: List of tokens generated so far.
+        """
         QUOTE = '"'
         key_injection = f"{QUOTE}{arg_name}{QUOTE}: "
 
@@ -195,6 +210,15 @@ class FunctionCallingEngine:
     def _predict_next_token(
         self, param_type: str, prompt_tokens: list[int]
     ) -> int:
+        """Predicts the next token using the model and applying constraints.
+
+        Args:
+            param_type: The expected type of the parameter.
+            prompt_tokens: List of tokens generated so far.
+
+        Returns:
+            The predicted token ID.
+        """
         logits: list[float] | np.ndarray = (
             self.model.get_logits_from_input_ids(prompt_tokens)
         )
@@ -207,6 +231,14 @@ class FunctionCallingEngine:
         return int(np.argmax(logits))
 
     def _apply_number_constraints(self, logits: list[float]) -> np.ndarray:
+        """Applies number constraints to the generated logits.
+
+        Args:
+            logits: List of logits from the model.
+
+        Returns:
+            A numpy array of constrained logits.
+        """
         logits_array = np.array(logits)
         masked_logits = np.full_like(logits_array, -np.inf)
 
@@ -218,6 +250,14 @@ class FunctionCallingEngine:
         return masked_logits
 
     def _apply_boolean_constraints(self, logits: list[float]) -> np.ndarray:
+        """Applies boolean constraints to the generated logits.
+
+        Args:
+            logits: List of logits from the model.
+
+        Returns:
+            A numpy array of constrained logits.
+        """
         logits_array = np.array(logits)
         masked_logits = np.full_like(logits_array, -np.inf)
 
@@ -235,6 +275,17 @@ class FunctionCallingEngine:
         prompt_tokens: list[int],
         is_last_arg: bool,
     ) -> bool:
+        """Checks if the parameter generation is complete.
+
+        Args:
+            param_type: The expected type of the parameter.
+            decoded_token: The most recently decoded token.
+            prompt_tokens: List of tokens generated so far.
+            is_last_arg: Whether this is the final parameter to generate.
+
+        Returns:
+            True if the parameter is complete, False otherwise.
+        """
         if param_type == "string":
             return self._handle_string_stop_condition(
                 decoded_token, prompt_tokens, is_last_arg
@@ -251,6 +302,16 @@ class FunctionCallingEngine:
     def _handle_string_stop_condition(
         self, decoded_token: str, prompt_tokens: list[int], is_last_arg: bool
     ) -> bool:
+        """Evaluates stop conditions specifically for string parameters.
+
+        Args:
+            decoded_token: The most recently decoded token.
+            prompt_tokens: List of tokens generated so far.
+            is_last_arg: Whether this is the final parameter to generate.
+
+        Returns:
+            True if the stop condition is met, False otherwise.
+        """
         QUOTE = '"'
         COMMA = ","
 
@@ -269,6 +330,15 @@ class FunctionCallingEngine:
     def _handle_default_stop_condition(
         self, decoded_token: str, prompt_tokens: list[int]
     ) -> bool:
+        """Evaluates default stop conditions for numbers and booleans.
+
+        Args:
+            decoded_token: The most recently decoded token.
+            prompt_tokens: List of tokens generated so far.
+
+        Returns:
+            True if the stop condition is met, False otherwise.
+        """
         COMMA = ","
         BRACE = "}"
 
@@ -286,6 +356,15 @@ class FunctionCallingEngine:
     def _parse_generated_parameters(
         self, prompt_tokens: list[int], fn_name: str
     ) -> dict[str, Any]:
+        """Parses the generated parameter string back into a dictionary.
+
+        Args:
+            prompt_tokens: List of tokens generated so far.
+            fn_name: Name of the function being generated.
+
+        Returns:
+            A dictionary containing parsed parameters.
+        """
         PARAMETERS_KEY = '"parameters":'
         prompt_str = self.model.decode(prompt_tokens)
 
@@ -301,6 +380,14 @@ class FunctionCallingEngine:
             return {}
 
     def _get_fn_params(self, fn_name: str) -> tuple[dict[str, Any], list[str]]:
+        """Retrieves parameters and names for a given function.
+
+        Args:
+            fn_name: The name of the function.
+
+        Returns:
+            A tuple containing parameter definitions and a list of argument names.
+        """
         for fd in self.functions_definitions:
             if fd.name == fn_name:
                 return fd.parameters, [p for p in fd.parameters]

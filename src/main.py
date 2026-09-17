@@ -19,6 +19,7 @@ class DefaultPath(StrEnum):
 
 
 def exit() -> None:
+    """Exits the program with a non-zero status code."""
     sys.exit(1)
 
 
