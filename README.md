@@ -26,38 +26,99 @@ make run
 The script loads function definitions from `data/input/functions_definition.json`, processes user prompts from `data/input/function_calling_tests.json`, and outputs the valid JSON results to `data/output/function_calling_results.json`.
 
 ## Algorithm Explanation
-The core of the project relies on **Constrained Decoding** implemented via a structured, iterative generation pipeline. 
+The core of the project relies on **Constrained Decoding** implemented via a structured, iterative generation pipeline. The algorithm is broken down into three major phases:
+
+### 1. Overall Pipeline Flow
+
+```mermaid
+flowchart TD
+    A[Initialization] --> B[Load Vocabulary & Schema]
+    B --> C[Parse Test Prompts]
+    
+    C --> D{Process Next Prompt}
+    D -->|Valid Prompt| E[Encode System Prompt]
+    E --> F[Generate Function Name]
+    F --> G[Generate Parameters]
+    G --> H[Parse JSON Result]
+    H --> D
+    
+    D -->|No more prompts| I[Save Results to Disk]
+```
+
+**Initialization and Preparation:** The program gathers the necessary context for the algorithms.
+- **Load Vocabulary:** Calls `get_path_to_vocab_file()`, reads the BPE vocabulary JSON, and caches it in memory.
+- **Parse Schemas:** Reads `functions_definition.json`. Pydantic models validate the function descriptions, names, and strict argument types.
+- **Read Prompts:** Loads the array of user text queries from `function_calling_tests.json`.
+
+**Main Processing Loop:** For each individual prompt (e.g., "Greet shrek"), an isolated process runs:
+- **System Prompt:** A base text is constructed containing the user query and the textual description of available functions.
+- **Encoding:** The text is passed through `encode()`, turning it into an array of token IDs which serves as the starting context for generation.
+
+**Constrained Decoding Engine:** The structure generation begins, heavily controlled by the engine:
+- **Function Matching:** The engine filters the model's vocabulary and selectively masks logits to ensure only valid function names are generated.
+- **Parameter Generation:** The engine intercepts generation for each argument, applying specific token constraints (e.g., `number` vs `string`) to prevent hallucinations and malformed JSON.
+- **JSON Closure:** The engine manually finalizes the JSON structure.
+
+**Finalization and Output:**
+- **Result Parsing:** The generated sequence of token IDs is decoded back into text and converted into a valid Python dictionary via `json.loads()`.
+- **Result Aggregation:** The extracted parameters and function name are bundled with the original prompt.
+- **Disk Write:** Once all prompts are processed, the final list is saved to `data/output/function_calling_results.json`.
+
+### 2. Logic of `_get_function_name`
+
+```mermaid
+flowchart LR
+    A[Inject: `{"name": "`] --> B[Request Logits]
+    B --> C[Find Matching Tokens]
+    C --> D{Is Single Match?}
+    
+    D -->|Yes| E[Return Function Name]
+    D -->|No| F[Mask Invalid Tokens]
+    F --> G[Pick argmax Token]
+    G --> H[Append Token & Repeat]
+    H --> B
+```
+
+The goal of this phase is to strictly output one of the predefined function names without hallucinations.
+- **Coalescence:** The engine bypasses the LLM for strict syntax, directly injecting the token IDs for the string `{"name": "` into the context.
+- **Logit Masking:** The engine requests logits for the next token. It compares the current generated sequence against all tokenized function names from the schema.
+- **Token Filtering:** It extracts the subset of valid next tokens (e.g. if we generated `"add"`, the next token must be `"_numbers"`). All other logits are mathematically set to `-np.inf`.
+- **Deterministic Selection:** The most probable allowed token is selected (`argmax`) and appended to the context. This loops until exactly one function name fully matches.
+
+### 3. Logic of `_generate_function_parameters`
 
 ```mermaid
 stateDiagram-v2
-    [*] --> MATCH_FUNCTION : Prompt Received
-    MATCH_FUNCTION --> INJECT_PARAMETERS_KEY : Function matched
-    INJECT_PARAMETERS_KEY --> GENERATE_ARGUMENT : Key injected
-    
-    state GENERATE_ARGUMENT {
-        [*] --> INJECT_ARG_KEY
+    [*] --> INJECT_PARAMETERS_KEY
+    INJECT_PARAMETERS_KEY --> ITERATE_PARAMS : `", "parameters": {`
+
+    state ITERATE_PARAMS {
+        [*] --> INJECT_ARG_KEY : `"arg_name": `
+        
         INJECT_ARG_KEY --> PREDICT_TOKEN
         
         state PREDICT_TOKEN {
-            direction LR
-            NumberConstraint
-            StringConstraint
-            BooleanConstraint
+            NumberMasking
+            BooleanMasking
+            StringInjection
         }
         
-        PREDICT_TOKEN --> CHECK_STOP_CONDITION
-        CHECK_STOP_CONDITION --> PREDICT_TOKEN : Not complete
+        PREDICT_TOKEN --> CHECK_STOP : Token Generated
+        CHECK_STOP --> PREDICT_TOKEN : Not Complete
+        CHECK_STOP --> [*] : Complete (Comma/Brace)
     }
     
-    GENERATE_ARGUMENT --> GENERATE_ARGUMENT : Next parameter
-    GENERATE_ARGUMENT --> [*] : All parameters complete
+    ITERATE_PARAMS --> ITERATE_PARAMS : Next Parameter
+    ITERATE_PARAMS --> [*] : All Parameters Processed
 ```
 
-### Constrained Decoding Approach
-Instead of letting the LLM guess the output format and risking malformed JSON, we actively intervene in the token prediction step (`_predict_next_token`).
-1. **Pre-caching Valid Tokens**: At startup, we scan the tokenizer's vocabulary and cache IDs for specific subsets (e.g., all tokens that are valid numbers, booleans, or stop tokens like `,` and `}`).
-2. **Logit Masking**: During generation, if we are parsing a `number` or `boolean`, we apply a mask of `-np.inf` to all logits *except* the cached valid token IDs. This physically forces the model to pick a valid value or a stop token.
-3. **Prompt Injection**: For `string` types, we inject the opening quote `"` directly into the prompt context, forcing the model to generate the inner string value and break exactly when it predicts the closing quote `"`. 
+Once the function name is matched, the engine generates its arguments step-by-step:
+- **Parameters Key Injection:** The engine manually appends `", "parameters": {` to the context to enforce standard JSON structure.
+- **Argument Iteration:** For each expected argument defined in the schema:
+  - **Key Injection:** The literal key (e.g. `"a": `) is injected directly.
+  - **Type Constraints:** The engine inspects the expected data type. If a `number` or `boolean` is expected, it applies a `-np.inf` mask to all non-numeric/non-boolean tokens (except stop tokens like `,` and `}`). If a `string` is expected, it manually injects an opening quote `"`.
+  - **Token Generation Loop:** Logits are repeatedly sampled and masked until a stop condition is met (e.g., a comma `,`, brace `}`, or closing quote `"` is generated).
+- **Cleanup:** Finally, the generated JSON string is safely closed (`rstrip("}") + "}"`) and parsed using `json.loads` to avoid standard LLM formatting errors.
 
 ## Design Decisions
 - **Decoupled Handlers**: The generation loop is refactored into modular helper functions (`_predict_next_token`, `_is_parameter_complete`). This eliminates spaghetti code and deeply nested loops.
