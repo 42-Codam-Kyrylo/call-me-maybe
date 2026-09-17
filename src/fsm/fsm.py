@@ -113,12 +113,22 @@ class FunctionCallingFSM:
         ).tolist()[0]
 
         for agr in args:
+            param_type = params[agr].type
             arg_tokens: list[int] = self.model.encode(f'"{agr}": ').tolist()[0]
             prompt_tokens.extend(arg_tokens)
 
             while True:
                 logits = self.model.get_logits_from_input_ids(prompt_tokens)
-                next_token = int(np.argmax(logits))
+                
+                if param_type == "number":
+                    last_logits = np.array(logits)
+                    masked_logits = np.full_like(last_logits, -np.inf)
+                    allowed_token_ids = self.cache.valid_numbers_ids + self.cache.valid_stop_ids
+                    masked_logits[allowed_token_ids] = last_logits[allowed_token_ids]
+                    next_token = int(np.argmax(masked_logits))
+                else:
+                    next_token = int(np.argmax(logits))
+                    
                 prompt_tokens.append(next_token)
 
                 value: str = self.model.decode([next_token])

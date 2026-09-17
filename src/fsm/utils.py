@@ -16,15 +16,22 @@ class Cache:
         self.vocabulary = vocabulary
         self.fd = fd
         self.valid_numbers_ids: list[int] = []
+        self.valid_stop_ids: list[int] = []
         self.tokenized_fds: list[list[int]] = []
 
         self.find_valid_numbers_ids()
+        self.find_valid_stop_ids()
         self.find_valid_fd_ids()
 
     def find_valid_numbers_ids(self) -> None:
         for token_text, token_id in self.vocabulary.items():
             if re.fullmatch(RegExp.NUMBERS, token_text):
                 self.valid_numbers_ids.append(token_id)
+
+    def find_valid_stop_ids(self) -> None:
+        for token_text, token_id in self.vocabulary.items():
+            if "," in token_text or "}" in token_text:
+                self.valid_stop_ids.append(token_id)
 
     def find_valid_fd_ids(self) -> None:
         for f in self.fd:
