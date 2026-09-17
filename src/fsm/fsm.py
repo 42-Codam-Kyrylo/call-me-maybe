@@ -1,17 +1,9 @@
-from enum import StrEnum
 from llm_sdk import Small_LLM_Model
 from src.parsing import Vocabulary, FunctionDefinition, FunctionCallingTest
 from .utils import Cache
 from src.utils import generate_prompt
 import numpy as np
 import json
-
-
-class STATUS(StrEnum):
-    # ORIGINAL_PROMPT = "original_prompt"
-    FUNCTION_NAME = "function_name"
-    FUNCTION_PARAMETERS = "function_parameters"
-    WAITING_NUMBER = "waiting_number"
 
 
 class FunctionCallingFSM:
@@ -27,7 +19,6 @@ class FunctionCallingFSM:
 
         self.fd_names = [f.name for f in self.functions_definitions]
         self.cache = Cache(self.model, self.vocabulary, self.fd_names)
-        self.status = STATUS.FUNCTION_NAME
 
     def run_tests(
         self, calling_tests: list[FunctionCallingTest]
@@ -46,14 +37,6 @@ class FunctionCallingFSM:
 
             parameters = self._generate_function_parameters(name, prompt)
             item["parameters"] = parameters
-
-            # match self.status:
-            #     case STATUS.FUNCTION_NAME:
-            #         self.status = STATUS.FUNCTION_PARAMETERS
-            #     case STATUS.FUNCTION_PARAMETERS:
-            #         pass
-            #     case STATUS.WAITING_NUMBER:
-            #         pass
 
             result.append(item)
 

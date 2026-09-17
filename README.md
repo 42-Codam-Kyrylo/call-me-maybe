@@ -3,7 +3,7 @@
 # Call Me Maybe ☎️
 
 ## Description
-"Call Me Maybe" is a lightweight, efficient function-calling engine built on top of small Large Language Models (LLMs). The goal of this project is to implement a highly reliable **Function Calling Finite State Machine (FSM)** that parses user prompts and strictly enforces output schema using constrained decoding. By manipulating logits during generation, we guarantee that the LLM generates valid JSON matching the provided function definitions, preventing hallucinations and formatting errors.
+"Call Me Maybe" is a lightweight, efficient function-calling engine built on top of small Large Language Models (LLMs). The goal of this project is to implement a highly reliable **Function Calling** that parses user prompts and strictly enforces output schema using constrained decoding. By manipulating logits during generation, we guarantee that the LLM generates valid JSON matching the provided function definitions, preventing hallucinations and formatting errors.
 
 ## Instructions
 ### Installation
@@ -26,12 +26,12 @@ make run
 The script loads function definitions from `data/input/functions_definition.json`, processes user prompts from `data/input/function_calling_tests.json`, and outputs the valid JSON results to `data/output/function_calling_results.json`.
 
 ## Algorithm Explanation
-The core of the project relies on **Constrained Decoding** implemented via a Finite State Machine (FSM). 
+The core of the project relies on **Constrained Decoding** implemented via a structured, iterative generation pipeline. 
 
 ```mermaid
 stateDiagram-v2
-    [*] --> FUNCTION_NAME : Prompt Received
-    FUNCTION_NAME --> INJECT_PARAMETERS_KEY : Function matched
+    [*] --> MATCH_FUNCTION : Prompt Received
+    MATCH_FUNCTION --> INJECT_PARAMETERS_KEY : Function matched
     INJECT_PARAMETERS_KEY --> GENERATE_ARGUMENT : Key injected
     
     state GENERATE_ARGUMENT {
@@ -62,7 +62,7 @@ Instead of letting the LLM guess the output format and risking malformed JSON, w
 ## Design Decisions
 - **Decoupled Handlers**: The generation loop is refactored into modular helper functions (`_predict_next_token`, `_is_parameter_complete`). This eliminates spaghetti code and deeply nested loops.
 - **Explicit Grammar Injection**: For objects and strings, we inject JSON grammar (`{`, `"`, `: `) explicitly rather than trusting the LLM to generate them.
-- **Scalability**: The state machine is built with extensibility in mind. Adding a new type (e.g., `boolean`) only requires a new cache mask (`valid_boolean_ids`) and a specific stop-condition handler.
+- **Scalability**: The generation pipeline is built with extensibility in mind. Adding a new type (e.g., `boolean`) only requires a new cache mask (`valid_boolean_ids`) and a specific stop-condition handler.
 
 ## Performance Analysis
 - **Accuracy**: 100% schema adherence. Logit masking mathematically prevents invalid data types and trailing commas.
