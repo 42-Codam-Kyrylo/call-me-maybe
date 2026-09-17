@@ -11,9 +11,6 @@ from src.parsing import (
     parse_vocabulary,
 )
 
-# TODO:  You must implement proper JSON error handling for input files,
-# as they may contain invalid JSON or be missing entirely
-
 
 class DefaultPath(StrEnum):
     FUNCTION_DEFINITION = "data/input/functions_definition.json"
@@ -26,6 +23,7 @@ def exit() -> None:
 
 
 def main() -> None:
+    """Entry point for the function calling pipeline."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--functions_definition",

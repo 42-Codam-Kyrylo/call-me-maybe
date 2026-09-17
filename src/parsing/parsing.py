@@ -29,9 +29,14 @@ Vocabulary = dict[str, int]
 
 
 def _parse_json_list_file(filepath: str, model_class: Type[T]) -> list[T]:
-    """
-    Generic helper function to load and validate a list of Pydantic models from a JSON file.
-    Includes error handling for missing files, invalid JSON, and schema validation.
+    """Generic helper function to load and validate a list of Pydantic models.
+
+    Args:
+        filepath: Path to the JSON file.
+        model_class: Pydantic model class to validate against.
+
+    Returns:
+        A list of validated models.
     """
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"Input file not found: {filepath}")
@@ -60,17 +65,38 @@ def _parse_json_list_file(filepath: str, model_class: Type[T]) -> list[T]:
 
 
 def parse_function_definitions(filepath: str) -> list[FunctionDefinition]:
-    """Loads and validates function definitions from a JSON file."""
+    """Loads and validates function definitions from a JSON file.
+
+    Args:
+        filepath: Path to the JSON file.
+
+    Returns:
+        A list of validated FunctionDefinition models.
+    """
     return _parse_json_list_file(filepath, FunctionDefinition)
 
 
 def parse_function_calling_tests(filepath: str) -> list[FunctionCallingTest]:
-    """Loads and validates function calling tests from a JSON file."""
+    """Loads and validates function calling tests from a JSON file.
+
+    Args:
+        filepath: Path to the JSON file.
+
+    Returns:
+        A list of validated FunctionCallingTest models.
+    """
     return _parse_json_list_file(filepath, FunctionCallingTest)
 
 
 def parse_vocabulary(filepath: str) -> Vocabulary:
-    """Loads a vocabulary dictionary from a JSON file."""
+    """Loads a vocabulary dictionary from a JSON file.
+
+    Args:
+        filepath: Path to the vocab.json file.
+
+    Returns:
+        A dictionary mapping tokens to their IDs.
+    """
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"Vocabulary file not found: {filepath}")
 

@@ -8,6 +8,8 @@ import json
 
 
 class FunctionCallingEngine:
+    """Engine for executing constrained function calling using an LLM."""
+
     def __init__(
         self,
         model: Small_LLM_Model,
@@ -24,6 +26,14 @@ class FunctionCallingEngine:
     def run_tests(
         self, calling_tests: list[FunctionCallingTest]
     ) -> list[dict[str, Any]]:
+        """Run function calling tests against the defined schemas.
+
+        Args:
+            calling_tests: A list of tests containing user prompts.
+
+        Returns:
+            A list of dictionaries with generated function calls.
+        """
         result: list[dict[str, Any]] = []
 
         for test in calling_tests:
@@ -44,6 +54,14 @@ class FunctionCallingEngine:
         return result
 
     def _get_function_name(self, prompt: str) -> str:
+        """Predict a valid function name from the schema using constrained decoding.
+
+        Args:
+            prompt: The formatted prompt to feed the LLM.
+
+        Returns:
+            The generated valid function name.
+        """
         prompt_with_injection = prompt + '{"name": "'
 
         prompt_tokens: list[int] = self.model.encode(
@@ -87,6 +105,15 @@ class FunctionCallingEngine:
         return self.model.decode(result_tokens)
 
     def _generate_function_parameters(self, fn_name: str, prompt: str) -> dict[str, Any]:
+        """Generate valid JSON parameters for a specific function.
+
+        Args:
+            fn_name: The name of the target function.
+            prompt: The formatted prompt.
+
+        Returns:
+            A dictionary of extracted parameters.
+        """
         params, arg_names = self._get_fn_params(fn_name)
 
         prompt_with_injection = (

@@ -5,11 +5,14 @@ from src.parsing import Vocabulary
 
 
 class RegExp(StrEnum):
+    """Regular expressions for detecting specific token types."""
     NUMBERS = r"[Ġ\s]*[-0-9.]+"
     BOOLEANS = r"[Ġ\s]*(true|false|True|False)"
 
 
 class Cache:
+    """Pre-caches vocabulary token IDs for constrained decoding."""
+
     def __init__(
         self, model: Small_LLM_Model, vocabulary: Vocabulary, fd: list[str]
     ):

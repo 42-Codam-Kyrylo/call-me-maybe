@@ -7,7 +7,9 @@ done:
 
 todo:
 - doc-strings
+- extra log delete
 - delete extra files
+- delete from makefile extra instructions?
 
 
 notes

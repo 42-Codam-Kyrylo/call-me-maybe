@@ -12,6 +12,15 @@ class PROMPT(StrEnum):
 def generate_prompt(
     functions_definition: List[FunctionDefinition], user_request: str
 ) -> str:
+    """Generates the main LLM system prompt integrating user requests and function schemas.
+
+    Args:
+        functions_definition: List of available functions.
+        user_request: The textual query from the user.
+
+    Returns:
+        The formatted prompt string.
+    """
     functions = format_function_definition(functions_definition)
     fd_strs = "\n".join(functions)
 
@@ -26,6 +35,14 @@ def generate_prompt(
 
 
 def format_function_definition(f_d: List[FunctionDefinition]) -> List[str]:
+    """Formats a list of function definitions into readable strings.
+
+    Args:
+        f_d: A list of FunctionDefinition models.
+
+    Returns:
+        A list of formatted string representations for the prompt.
+    """
     result: List[str] = []
 
     for f in f_d:
