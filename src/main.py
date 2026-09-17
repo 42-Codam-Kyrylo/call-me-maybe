@@ -37,6 +37,12 @@ def main() -> None:
         "--output",
         default=DefaultPath.OUTPUT,
     )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable real-time visualization of the generation process.",
+    )
 
     args = parser.parse_args()
     print("input:", args.input)
@@ -58,16 +64,14 @@ def main() -> None:
     model = Small_LLM_Model()
 
     vocabulary_path = model.get_path_to_vocab_file()
-    print(f"path of vocabulary: {vocabulary_path}")
 
     try:
         vocabulary = parse_vocabulary(vocabulary_path)
-        print(f"Successfully loaded vocabulary with {len(vocabulary)} tokens.")
     except Exception as e:
         print(f"Error loading vocabulary: {e}")
         exit()
 
-    engine = FunctionCallingEngine(model, vocabulary, fd)
+    engine = FunctionCallingEngine(model, vocabulary, fd, verbose=args.verbose)
     result = engine.run_tests(tests)
 
     output_path = Path(args.output)
@@ -80,5 +84,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-

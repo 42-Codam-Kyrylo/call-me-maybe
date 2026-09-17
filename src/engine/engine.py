@@ -15,13 +15,20 @@ class FunctionCallingEngine:
         model: Small_LLM_Model,
         vocabulary: Vocabulary,
         functions_definitions: list[FunctionDefinition],
+        verbose: bool = False,
     ):
         self.model = model
         self.vocabulary = vocabulary
         self.functions_definitions = functions_definitions
+        self.verbose = verbose
 
         self.fd_names = [f.name for f in self.functions_definitions]
         self.cache = Cache(self.model, self.vocabulary, self.fd_names)
+
+    def _print(self, text: str) -> None:
+        """Helper to print generated text in real-time if verbose is enabled."""
+        if self.verbose:
+            print(text, end="", flush=True)
 
     def run_tests(
         self, calling_tests: list[FunctionCallingTest]
@@ -37,6 +44,9 @@ class FunctionCallingEngine:
         result: list[dict[str, Any]] = []
 
         for test in calling_tests:
+            if self.verbose:
+                print(f"\n\n\033[94m[Prompt]\033[0m {test.prompt}\n\033[92m[Generating]\033[0m ", end="", flush=True)
+
             item: dict[str, Any] = {
                 "prompt": test.prompt,
             }
@@ -63,6 +73,7 @@ class FunctionCallingEngine:
             The generated valid function name.
         """
         prompt_with_injection = prompt + '{"name": "'
+        self._print('{"name": "')
 
         prompt_tokens: list[int] = self.model.encode(
             prompt_with_injection
@@ -86,6 +97,9 @@ class FunctionCallingEngine:
             allowed_token_ids = list(set(allowed_token_ids))
 
             if matched_functions == 1 and last_matched_fd:
+                remaining_tokens = last_matched_fd[len(result_tokens):]
+                if remaining_tokens:
+                    self._print(self.model.decode(remaining_tokens))
                 return self.model.decode(last_matched_fd)
 
             if matched_functions == 0:
@@ -98,6 +112,7 @@ class FunctionCallingEngine:
             masked_logits[allowed_token_ids] = last_logits[allowed_token_ids]
 
             next_token = int(np.argmax(masked_logits))
+            self._print(self.model.decode([next_token]))
 
             prompt_tokens.append(next_token)
             result_tokens.append(next_token)
@@ -119,6 +134,8 @@ class FunctionCallingEngine:
         prompt_with_injection = (
             f'{prompt}{{"name": "{fn_name}", "parameters": {{'
         )
+        self._print(f'", "parameters": {{')
+
         prompt_tokens: list[int] = self.model.encode(
             prompt_with_injection
         ).tolist()[0]
@@ -147,6 +164,8 @@ class FunctionCallingEngine:
             prompt_tokens.append(next_token)
 
             decoded_token: str = self.model.decode([next_token])
+            self._print(decoded_token)
+            
             is_complete = self._is_parameter_complete(
                 param_type, decoded_token, prompt_tokens, is_last_arg
             )
@@ -163,6 +182,7 @@ class FunctionCallingEngine:
         if param_type == "string":
             key_injection += QUOTE
 
+        self._print(key_injection)
         key_tokens = self.model.encode(key_injection).tolist()[0]
         prompt_tokens.extend(key_tokens)
 
@@ -232,6 +252,7 @@ class FunctionCallingEngine:
 
         needs_comma_separator = not is_last_arg and COMMA not in decoded_token
         if needs_comma_separator:
+            self._print(", ")
             comma_tokens = self.model.encode(", ").tolist()[0]
             prompt_tokens.extend(comma_tokens)
 
@@ -244,6 +265,7 @@ class FunctionCallingEngine:
         BRACE = "}"
 
         if COMMA in decoded_token:
+            self._print(" ")
             whitespace_token = self.model.encode(" ").tolist()[0]
             prompt_tokens.extend(whitespace_token)
             return True
