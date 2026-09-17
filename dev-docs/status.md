@@ -2,10 +2,13 @@ done:
 - function name generation
 - params generation
 - creating output
-todo:
 - flake8 and mypy fixes
-- delete extra files
 - readme
+
+todo:
+- doc-strings
+- delete extra files
+
 
 notes
 It is forbidden to use any private methods or attributes from the llm_sdk package.

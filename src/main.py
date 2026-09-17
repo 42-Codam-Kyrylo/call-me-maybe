@@ -21,11 +21,11 @@ class DefaultPath(StrEnum):
     OUTPUT = "data/output/function_calling_results.json"
 
 
-def exit():
+def exit() -> None:
     sys.exit(1)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--functions_definition",

@@ -2,6 +2,7 @@ from llm_sdk import Small_LLM_Model
 from src.parsing import Vocabulary, FunctionDefinition, FunctionCallingTest
 from .utils import Cache
 from src.utils import generate_prompt
+from typing import Any, cast
 import numpy as np
 import json
 
@@ -22,11 +23,11 @@ class FunctionCallingEngine:
 
     def run_tests(
         self, calling_tests: list[FunctionCallingTest]
-    ) -> list[dict]:
-        result = []
+    ) -> list[dict[str, Any]]:
+        result: list[dict[str, Any]] = []
 
         for test in calling_tests:
-            item = {
+            item: dict[str, Any] = {
                 "prompt": test.prompt,
             }
 
@@ -53,7 +54,7 @@ class FunctionCallingEngine:
         while True:
             allowed_token_ids = []
             matched_functions = 0
-            last_matched_fd = None
+            last_matched_fd: list[int] = []
 
             for fd_tokens in self.cache.tokenized_fds:
                 if fd_tokens[: len(result_tokens)] == result_tokens:
@@ -66,14 +67,14 @@ class FunctionCallingEngine:
 
             allowed_token_ids = list(set(allowed_token_ids))
 
-            if matched_functions == 1:
+            if matched_functions == 1 and last_matched_fd:
                 return self.model.decode(last_matched_fd)
 
             if matched_functions == 0:
                 break
 
-            logits = self.model.get_logits_from_input_ids(prompt_tokens)
-            last_logits = np.array(logits)
+            logits_list = self.model.get_logits_from_input_ids(prompt_tokens)
+            last_logits = np.array(logits_list)
 
             masked_logits = np.full_like(last_logits, -np.inf)
             masked_logits[allowed_token_ids] = last_logits[allowed_token_ids]
@@ -85,7 +86,7 @@ class FunctionCallingEngine:
 
         return self.model.decode(result_tokens)
 
-    def _generate_function_parameters(self, fn_name: str, prompt: str) -> dict:
+    def _generate_function_parameters(self, fn_name: str, prompt: str) -> dict[str, Any]:
         params, arg_names = self._get_fn_params(fn_name)
 
         prompt_with_injection = (
@@ -141,12 +142,12 @@ class FunctionCallingEngine:
     def _predict_next_token(
         self, param_type: str, prompt_tokens: list[int]
     ) -> int:
-        logits = self.model.get_logits_from_input_ids(prompt_tokens)
+        logits: list[float] | np.ndarray = self.model.get_logits_from_input_ids(prompt_tokens)
 
         if param_type == "number":
-            logits = self._apply_number_constraints(logits)
+            logits = self._apply_number_constraints(cast(list[float], logits))
         elif param_type == "boolean":
-            logits = self._apply_boolean_constraints(logits)
+            logits = self._apply_boolean_constraints(cast(list[float], logits))
 
         return int(np.argmax(logits))
 
@@ -227,7 +228,7 @@ class FunctionCallingEngine:
 
     def _parse_generated_parameters(
         self, prompt_tokens: list[int], fn_name: str
-    ) -> dict:
+    ) -> dict[str, Any]:
         PARAMETERS_KEY = '"parameters":'
         prompt_str = self.model.decode(prompt_tokens)
 
@@ -235,14 +236,15 @@ class FunctionCallingEngine:
 
         cleaned_result = result_str.strip().rstrip("}") + "}"
         try:
-            return json.loads(cleaned_result)
+            return cast(dict[str, Any], json.loads(cleaned_result))
         except json.JSONDecodeError:
             print(
                 f"JSONDecodeError for {fn_name}, result: {repr(cleaned_result)}"
             )
             return {}
 
-    def _get_fn_params(self, fn_name: str):
+    def _get_fn_params(self, fn_name: str) -> tuple[dict[str, Any], list[str]]:
         for fd in self.functions_definitions:
             if fd.name == fn_name:
                 return fd.parameters, [p for p in fd.parameters]
+        return {}, []

@@ -17,3 +17,18 @@ members = [
 
 [tool.uv.sources]
 llm-sdk = { workspace = true, editable = true }
+
+[tool.mypy]
+exclude = [
+    '^.venv/',
+    '^.cache/',
+    '^dev-docs/',
+    '^llm_sdk/',
+]
+
+[dependency-groups]
+dev = [
+    "flake8>=7.3.0",
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
+]

@@ -11,7 +11,7 @@ __all__ = [
     "parse_function_definitions",
     "parse_function_calling_tests",
     "parse_vocabulary",
-    FunctionDefinition,
-    FunctionCallingTest,
-    Vocabulary,
+    "FunctionDefinition",
+    "FunctionCallingTest",
+    "Vocabulary",
 ]
