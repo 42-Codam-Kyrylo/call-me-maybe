@@ -82,19 +82,3 @@ if __name__ == "__main__":
     main()
 
 
-# example of usage
-# prompt = "The capital of France is"
-
-# tokens: list[int] = model.encode(prompt).tolist()[0]
-# max_new_tokens = 10
-
-# for _ in range(max_new_tokens):
-#     logits = model.get_logits_from_input_ids(tokens)
-#     next_token = int(np.argmax(logits))
-
-#     tokens.append(next_token)
-#     print(model.decode([next_token]), end="", flush=True)
-
-# full_text = model.decode(tokens)
-# print()
-# print(full_text)

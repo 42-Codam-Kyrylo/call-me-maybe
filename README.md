@@ -1,5 +1,10 @@
 *This project has been created as part of the 42 curriculum by kvolynsk.*
 
+TODO:
+- delete agents.md
+- delete from makefile extra instructions?
+- create test-branch with comprehensive test-cases
+
 # Call Me Maybe ☎️
 
 ## Description

@@ -67,20 +67,5 @@
     "returns": {
       "type": "string"
     }
-  },
-  {
-    "name": "fn_toggle_feature",
-    "description": "Toggle a feature flag on or off.",
-    "parameters": {
-      "feature_name": {
-        "type": "string"
-      },
-      "enabled": {
-        "type": "boolean"
-      }
-    },
-    "returns": {
-      "type": "string"
-    }
   }
 ]
