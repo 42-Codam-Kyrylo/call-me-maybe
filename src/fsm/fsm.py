@@ -103,72 +103,134 @@ class FunctionCallingFSM:
         return self.model.decode(result_tokens)
 
     def _generate_function_parameters(self, fn_name: str, prompt: str) -> dict:
-        params, args = self._get_fn_params(fn_name)
+        params, arg_names = self._get_fn_params(fn_name)
 
-        prompt_with_injection = (
-            prompt + f'{{"name": "{fn_name}", "parameters": {{'
-        )
-        prompt_tokens: list[int] = self.model.encode(
-            prompt_with_injection
-        ).tolist()[0]
+        prompt_with_injection = f'{prompt}{{"name": "{fn_name}", "parameters": {{'
+        prompt_tokens: list[int] = self.model.encode(prompt_with_injection).tolist()[0]
 
-        for i, agr in enumerate(args):
-            param_type = params[agr].type
+        for index, arg_name in enumerate(arg_names):
+            param_type = params[arg_name].type
+            is_last_arg = (index == len(arg_names) - 1)
+            
+            self._generate_single_parameter(
+                arg_name, param_type, prompt_tokens, is_last_arg
+            )
 
-            if param_type == "string":
-                arg_tokens: list[int] = self.model.encode(
-                    f'"{agr}": "'
-                ).tolist()[0]
-            else:
-                arg_tokens: list[int] = self.model.encode(
-                    f'"{agr}": '
-                ).tolist()[0]
+        return self._parse_generated_parameters(prompt_tokens, fn_name)
 
-            prompt_tokens.extend(arg_tokens)
+    def _generate_single_parameter(
+        self, arg_name: str, param_type: str, prompt_tokens: list[int], is_last_arg: bool
+    ) -> None:
+        self._inject_parameter_key(arg_name, param_type, prompt_tokens)
+        
+        while True:
+            next_token = self._predict_next_token(param_type, prompt_tokens)
+            prompt_tokens.append(next_token)
+            
+            decoded_token: str = self.model.decode([next_token])
+            is_complete = self._is_parameter_complete(
+                param_type, decoded_token, prompt_tokens, is_last_arg
+            )
+            
+            if is_complete:
+                break
 
-            while True:
-                logits = self.model.get_logits_from_input_ids(prompt_tokens)
+    def _inject_parameter_key(
+        self, arg_name: str, param_type: str, prompt_tokens: list[int]
+    ) -> None:
+        QUOTE = '"'
+        key_injection = f'{QUOTE}{arg_name}{QUOTE}: '
+        
+        if param_type == "string":
+            key_injection += QUOTE
+            
+        key_tokens = self.model.encode(key_injection).tolist()[0]
+        prompt_tokens.extend(key_tokens)
 
-                if param_type == "number":
-                    last_logits = np.array(logits)
-                    masked_logits = np.full_like(last_logits, -np.inf)
-                    allowed_token_ids = (
-                        self.cache.valid_numbers_ids
-                        + self.cache.valid_stop_ids
-                    )
-                    masked_logits[allowed_token_ids] = last_logits[
-                        allowed_token_ids
-                    ]
-                    next_token = int(np.argmax(masked_logits))
-                else:
-                    next_token = int(np.argmax(logits))
+    def _predict_next_token(self, param_type: str, prompt_tokens: list[int]) -> int:
+        logits = self.model.get_logits_from_input_ids(prompt_tokens)
+        
+        if param_type == "number":
+            logits = self._apply_number_constraints(logits)
+        elif param_type == "boolean":
+            logits = self._apply_boolean_constraints(logits)
+            
+        return int(np.argmax(logits))
 
-                prompt_tokens.append(next_token)
+    def _apply_number_constraints(self, logits: list[float]) -> np.ndarray:
+        logits_array = np.array(logits)
+        masked_logits = np.full_like(logits_array, -np.inf)
+        
+        allowed_token_ids = self.cache.valid_numbers_ids + self.cache.valid_stop_ids
+        masked_logits[allowed_token_ids] = logits_array[allowed_token_ids]
+        
+        return masked_logits
 
-                value: str = self.model.decode([next_token])
+    def _apply_boolean_constraints(self, logits: list[float]) -> np.ndarray:
+        logits_array = np.array(logits)
+        masked_logits = np.full_like(logits_array, -np.inf)
+        
+        allowed_token_ids = self.cache.valid_boolean_ids + self.cache.valid_stop_ids
+        masked_logits[allowed_token_ids] = logits_array[allowed_token_ids]
+        
+        return masked_logits
 
-                if param_type == "string":
-                    if '"' in value:
-                        if i < len(args) - 1 and "," not in value:
-                            prompt_tokens.extend(
-                                self.model.encode(", ").tolist()[0]
-                            )
-                        break
-                else:
-                    if "," in value:
-                        whitespace_token = self.model.encode(" ").tolist()[0]
-                        prompt_tokens.extend(whitespace_token)
-                        break
-                    if "}" in value:
-                        break
+    def _is_parameter_complete(
+        self, param_type: str, decoded_token: str, prompt_tokens: list[int], is_last_arg: bool
+    ) -> bool:
+        if param_type == "string":
+            return self._handle_string_stop_condition(decoded_token, prompt_tokens, is_last_arg)
+        elif param_type == "boolean":
+            return self._handle_default_stop_condition(decoded_token, prompt_tokens)
+        else:
+            return self._handle_default_stop_condition(decoded_token, prompt_tokens)
 
+    def _handle_string_stop_condition(
+        self, decoded_token: str, prompt_tokens: list[int], is_last_arg: bool
+    ) -> bool:
+        QUOTE = '"'
+        COMMA = ','
+        
+        has_closing_quote = QUOTE in decoded_token
+        if not has_closing_quote:
+            return False
+            
+        needs_comma_separator = not is_last_arg and COMMA not in decoded_token
+        if needs_comma_separator:
+            comma_tokens = self.model.encode(", ").tolist()[0]
+            prompt_tokens.extend(comma_tokens)
+            
+        return True
+
+    def _handle_default_stop_condition(
+        self, decoded_token: str, prompt_tokens: list[int]
+    ) -> bool:
+        COMMA = ','
+        BRACE = '}'
+        
+        if COMMA in decoded_token:
+            whitespace_token = self.model.encode(" ").tolist()[0]
+            prompt_tokens.extend(whitespace_token)
+            return True
+            
+        if BRACE in decoded_token:
+            return True
+            
+        return False
+
+    def _parse_generated_parameters(
+        self, prompt_tokens: list[int], fn_name: str
+    ) -> dict:
+        PARAMETERS_KEY = '"parameters":'
         prompt_str = self.model.decode(prompt_tokens)
-        _, _, result = prompt_str.partition('"parameters":')
-        result = result.strip().rstrip("}") + "}"
+        
+        _, _, result_str = prompt_str.partition(PARAMETERS_KEY)
+        
+        cleaned_result = result_str.strip().rstrip("}") + "}"
         try:
-            return json.loads(result)
+            return json.loads(cleaned_result)
         except json.JSONDecodeError:
-            print(f"JSONDecodeError for {fn_name}, result: {repr(result)}")
+            print(f"JSONDecodeError for {fn_name}, result: {repr(cleaned_result)}")
             return {}
 
     def _get_fn_params(self, fn_name: str):

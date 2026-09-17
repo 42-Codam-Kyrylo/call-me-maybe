@@ -6,6 +6,7 @@ from src.parsing import Vocabulary
 
 class RegExp(StrEnum):
     NUMBERS = r"[Ġ\s]*[-0-9.]+"
+    BOOLEANS = r"[Ġ\s]*(true|false|True|False)"
 
 
 class Cache:
@@ -16,10 +17,12 @@ class Cache:
         self.vocabulary = vocabulary
         self.fd = fd
         self.valid_numbers_ids: list[int] = []
+        self.valid_boolean_ids: list[int] = []
         self.valid_stop_ids: list[int] = []
         self.tokenized_fds: list[list[int]] = []
 
         self.find_valid_numbers_ids()
+        self.find_valid_boolean_ids()
         self.find_valid_stop_ids()
         self.find_valid_fd_ids()
 
@@ -27,6 +30,11 @@ class Cache:
         for token_text, token_id in self.vocabulary.items():
             if re.fullmatch(RegExp.NUMBERS, token_text):
                 self.valid_numbers_ids.append(token_id)
+
+    def find_valid_boolean_ids(self) -> None:
+        for token_text, token_id in self.vocabulary.items():
+            if re.fullmatch(RegExp.BOOLEANS, token_text):
+                self.valid_boolean_ids.append(token_id)
 
     def find_valid_stop_ids(self) -> None:
         for token_text, token_id in self.vocabulary.items():
