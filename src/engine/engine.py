@@ -45,7 +45,11 @@ class FunctionCallingEngine:
 
         for test in calling_tests:
             if self.verbose:
-                print(f"\n\n\033[94m[Prompt]\033[0m {test.prompt}\n\033[92m[Generating]\033[0m ", end="", flush=True)
+                print(
+                    f"\n\n\033[94m[Prompt]\033[0m {test.prompt}\n\033[92m[Generating]\033[0m ",
+                    end="",
+                    flush=True,
+                )
 
             item: dict[str, Any] = {
                 "prompt": test.prompt,
@@ -119,7 +123,9 @@ class FunctionCallingEngine:
 
         return self.model.decode(result_tokens)
 
-    def _generate_function_parameters(self, fn_name: str, prompt: str) -> dict[str, Any]:
+    def _generate_function_parameters(
+        self, fn_name: str, prompt: str
+    ) -> dict[str, Any]:
         """Generate valid JSON parameters for a specific function.
 
         Args:
@@ -134,7 +140,7 @@ class FunctionCallingEngine:
         prompt_with_injection = (
             f'{prompt}{{"name": "{fn_name}", "parameters": {{'
         )
-        self._print(f'", "parameters": {{')
+        self._print('", "parameters": {')
 
         prompt_tokens: list[int] = self.model.encode(
             prompt_with_injection
@@ -165,7 +171,7 @@ class FunctionCallingEngine:
 
             decoded_token: str = self.model.decode([next_token])
             self._print(decoded_token)
-            
+
             is_complete = self._is_parameter_complete(
                 param_type, decoded_token, prompt_tokens, is_last_arg
             )
@@ -189,7 +195,9 @@ class FunctionCallingEngine:
     def _predict_next_token(
         self, param_type: str, prompt_tokens: list[int]
     ) -> int:
-        logits: list[float] | np.ndarray = self.model.get_logits_from_input_ids(prompt_tokens)
+        logits: list[float] | np.ndarray = (
+            self.model.get_logits_from_input_ids(prompt_tokens)
+        )
 
         if param_type == "number":
             logits = self._apply_number_constraints(cast(list[float], logits))

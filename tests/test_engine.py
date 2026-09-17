@@ -9,14 +9,14 @@ from src.engine import FunctionCallingEngine
 
 
 @pytest.fixture(scope="session")
-def engine():
+def engine() -> FunctionCallingEngine:
     fd = parse_function_definitions("data/input/functions_definition.json")
     model = Small_LLM_Model()
     vocabulary = parse_vocabulary(model.get_path_to_vocab_file())
     return FunctionCallingEngine(model, vocabulary, fd, verbose=False)
 
 
-def test_engine_valid_json_outputs(engine):
+def test_engine_valid_json_outputs(engine: FunctionCallingEngine) -> None:
     tests = parse_function_calling_tests(
         "data/input/function_calling_tests.json"
     )
@@ -38,7 +38,7 @@ def test_engine_valid_json_outputs(engine):
         assert result["name"] in [f.name for f in engine.functions_definitions]
 
 
-def test_engine_edge_cases(engine):
+def test_engine_edge_cases(engine: FunctionCallingEngine) -> None:
     """Test engine against edge cases like empty strings, large numbers, special chars."""
     edge_cases = parse_function_calling_tests(
         "data/input/edge_cases_tests.json"
