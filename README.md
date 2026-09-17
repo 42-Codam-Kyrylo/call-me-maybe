@@ -173,4 +173,17 @@ Validation is handled by processing a diverse set of prompts in `data/input/func
 ```
 
 ## Resources
-- TODO
+- [Deep Dive into LLMs like ChatGPT (Andrej Karpathy)](https://www.youtube.com/watch?v=7xTGNNLPyMI)
+- [Controlling Your LLM: Deep Dive into Constrained Generation](https://medium.com/@docherty/controlling-your-llm-deep-dive-into-constrained-generation-1e561c736a20)
+- [Constrained Decoding & Structured LLM Output](https://mbrenndoerfer.com/writing/constrained-decoding-structured-llm-output?utm_source=chatgpt.com#google_vignette)
+- [W3Schools: Python JSON](https://www.w3schools.com/python/python_json.asp)
+- [W3Schools: NumPy Introduction](https://www.w3schools.com/python/NumPy/numpy_intro.asp)
+- [W3Schools: Python argparse Module](https://www.w3schools.com/Python/ref_module_argparse.asp)
+
+### AI Usage
+AI  was used as an assistant for specific aspects of the project:
+- **Documentation Writing:** Assisting in formatting, structuring, and generating Markdown documentation and Mermaid diagrams for the README.
+- **Type Checking & Verification:** Reviewing parameter type constraints and data validation patterns.
+- **Environment & Cache Configuration:** Troubleshooting Hugging Face cache directories (`HF_HOME`) and execution environment setups.
+- **Additional Test Cases:** Synthesizing test prompts and mock schema definitions (such as `boolean` feature toggle cases) to validate constrained decoding robustness.
+
