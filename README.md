@@ -143,6 +143,13 @@ Once the function name is matched, the engine generates its arguments step-by-st
 3. **Malformed JSON Decode Errors**: Standard LLMs often fail to open/close quotes properly.
    - *Solution*: Intercepting generation exactly at the closing quote and manually closing the JSON tree (`rstrip("}") + "}"`) guaranteed safe parsing via `json.loads`.
 
+## Bonus Features Implemented
+This project successfully implements the following optional bonus features:
+1. **Visualization of the Generation Process**: Passing the `--verbose` (or `-v`) flag to `main.py` provides a real-time, token-by-token printout of the LLM's generation process, allowing users to visually inspect how the constrained decoding pipeline forces valid JSON output.
+2. **Comprehensive Test Suite**: A robust `pytest` suite is included in `tests/test_engine.py`. It runs the engine against standard prompts as well as a dedicated suite of edge cases (empty strings, large numbers, special characters, and ambiguous prompts) to guarantee schema adherence.
+3. **Performance Optimizations (Caching)**: Instead of evaluating string rules against 150,000+ tokens during every generation step, the `Cache` class pre-computes and caches valid token IDs at startup. During generation, token masking is handled instantaneously via vectorized `numpy` array assignments.
+4. **Advanced Error Recovery Mechanisms**: The JSON decoder logic (`_parse_generated_parameters`) acts as a safeguard. If the LLM generates irreparably damaged JSON (e.g., highly nested unescaped quotes), the pipeline gracefully catches the `JSONDecodeError` and degrades to an empty `{}` object rather than crashing the execution loop.
+
 ## Testing Strategy
 Validation is handled by processing a diverse set of prompts in `data/input/function_calling_tests.json`:
 - **Standard Types**: Addition (`fn_add_numbers`) tests standard integer extraction.
