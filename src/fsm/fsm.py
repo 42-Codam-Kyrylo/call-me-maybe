@@ -4,6 +4,7 @@ from src.parsing import Vocabulary, FunctionDefinition, FunctionCallingTest
 from .utils import Cache
 from src.utils import generate_prompt
 import numpy as np
+import json
 
 
 class STATUS(StrEnum):
@@ -130,7 +131,11 @@ class FunctionCallingFSM:
 
         prompt_str = self.model.decode(prompt_tokens)
         _, _, result = prompt_str.partition('"parameters":')
-        return result.strip()
+        result = result.strip().rstrip("}") + "}"
+        try:
+            return json.loads(result)
+        except json.JSONDecodeError:
+            return {}
 
     def _get_fn_params(self, fn_name: str):
         for fd in self.functions_definitions:
