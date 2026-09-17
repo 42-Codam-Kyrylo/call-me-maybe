@@ -1,5 +1,7 @@
 import argparse
 import sys
+import json
+from pathlib import Path
 from src.fsm import FunctionCallingFSM
 from enum import StrEnum
 from llm_sdk import Small_LLM_Model
@@ -70,8 +72,12 @@ def main():
     fsm = FunctionCallingFSM(model, vocabulary, fd)
     result = fsm.run_tests(tests)
 
-    for r in result:
-        print(r)
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=4, ensure_ascii=False)
+    print(f"Results successfully saved to {output_path}")
 
 
 if __name__ == "__main__":
