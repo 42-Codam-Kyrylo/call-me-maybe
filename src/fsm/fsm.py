@@ -112,32 +112,55 @@ class FunctionCallingFSM:
             prompt_with_injection
         ).tolist()[0]
 
-        for agr in args:
+        for i, agr in enumerate(args):
             param_type = params[agr].type
-            arg_tokens: list[int] = self.model.encode(f'"{agr}": ').tolist()[0]
+
+            if param_type == "string":
+                arg_tokens: list[int] = self.model.encode(
+                    f'"{agr}": "'
+                ).tolist()[0]
+            else:
+                arg_tokens: list[int] = self.model.encode(
+                    f'"{agr}": '
+                ).tolist()[0]
+
             prompt_tokens.extend(arg_tokens)
 
             while True:
                 logits = self.model.get_logits_from_input_ids(prompt_tokens)
-                
+
                 if param_type == "number":
                     last_logits = np.array(logits)
                     masked_logits = np.full_like(last_logits, -np.inf)
-                    allowed_token_ids = self.cache.valid_numbers_ids + self.cache.valid_stop_ids
-                    masked_logits[allowed_token_ids] = last_logits[allowed_token_ids]
+                    allowed_token_ids = (
+                        self.cache.valid_numbers_ids
+                        + self.cache.valid_stop_ids
+                    )
+                    masked_logits[allowed_token_ids] = last_logits[
+                        allowed_token_ids
+                    ]
                     next_token = int(np.argmax(masked_logits))
                 else:
                     next_token = int(np.argmax(logits))
-                    
+
                 prompt_tokens.append(next_token)
 
                 value: str = self.model.decode([next_token])
-                if "," in value:
-                    whitespace_token = self.model.encode(" ").tolist()[0]
-                    prompt_tokens.extend(whitespace_token)
-                    break
-                if "}" in value:
-                    break
+
+                if param_type == "string":
+                    if '"' in value:
+                        if i < len(args) - 1 and "," not in value:
+                            prompt_tokens.extend(
+                                self.model.encode(", ").tolist()[0]
+                            )
+                        break
+                else:
+                    if "," in value:
+                        whitespace_token = self.model.encode(" ").tolist()[0]
+                        prompt_tokens.extend(whitespace_token)
+                        break
+                    if "}" in value:
+                        break
 
         prompt_str = self.model.decode(prompt_tokens)
         _, _, result = prompt_str.partition('"parameters":')
@@ -145,6 +168,7 @@ class FunctionCallingFSM:
         try:
             return json.loads(result)
         except json.JSONDecodeError:
+            print(f"JSONDecodeError for {fn_name}, result: {repr(result)}")
             return {}
 
     def _get_fn_params(self, fn_name: str):
