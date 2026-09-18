@@ -2,8 +2,6 @@ BASE_DIR := /goinfre/$(USER)
 export HF_HOME := $(BASE_DIR)/cache/huggingface
 export UV_CACHE_DIR := $(BASE_DIR)/cache/uv
 export UV_PROJECT_ENVIRONMENT := $(BASE_DIR)/call-me-maybe/.venv
-export HF_HUB_OFFLINE := 1
-export TRANSFORMERS_OFFLINE := 1
 
 PYTHON := python3
 UV := uv
